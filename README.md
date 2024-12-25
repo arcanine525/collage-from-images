@@ -5,7 +5,8 @@ A Python-based collage generator that creates beautiful, automatically arranged 
 ## Features
 
 - Supports multiple image formats (JPEG, PNG, WebP, HEIC/HEIF)
-- Creates collages with up to 6 images
+- Creates collages with up to 9 images
+- Instagram-style grid layout for 7-9 images
 - Multiple aspect ratio options (16:9, Square, 9:16)
 - Intelligent image placement with slight rotations for visual interest
 - Face detection to avoid overlapping faces in images
@@ -71,6 +72,7 @@ The script will automatically:
 - 4 images: Grid layout
 - 5 images: Large main + 4 smaller
 - 6 images: Balanced grid with slight overlap
+- 7-9 images: Instagram-style 3x3 grid
 
 ### Image Processing
 - Maintains original aspect ratios
