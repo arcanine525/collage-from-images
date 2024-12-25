@@ -1,6 +1,6 @@
 # Project-specific directories
 collages/
-images/
+images*/
 
 # Python
 __pycache__/
