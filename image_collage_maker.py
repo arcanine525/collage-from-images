@@ -5,10 +5,11 @@ import random
 from typing import Tuple, List
 import math
 from pillow_heif import register_heif_opener
-from PIL import ImageDraw, ImageFilter
+from PIL import ImageDraw, ImageFilter, ImageFont
 import requests
 from io import BytesIO
 import urllib.parse
+import imageio
 
 # Import grid layouts and configuration
 from grid_layouts import GRID_LAYOUTS, DEFAULT_LAYOUT_CONFIG
@@ -142,27 +143,12 @@ class CollageGenerator:
             w = int(w_ratio * base_width) - (2 * border_size)
             h = int(h_ratio * base_height) - (2 * border_size)
 
-            # Load image - handle both URLs and local files
-            if image_file.startswith(('http://', 'https://')):
-                # It's a URL - download the image
-                try:
-                    response = requests.get(image_file, stream=True)
-                    response.raise_for_status()  # Raise an exception for 4XX/5XX responses
-                    img = Image.open(BytesIO(response.content))
-                except Exception as e:
-                    print(f"Error loading image from URL {image_file}: {e}")
-                    continue
-            else:
-                # It's a local file
-                if self.images_dir is None:
-                    img_path = image_file
-                else:
-                    img_path = os.path.join(self.images_dir, image_file)
-                try:
-                    img = Image.open(img_path)
-                except Exception as e:
-                    print(f"Error loading image from path {img_path}: {e}")
-                    continue
+            # Load image from file path
+            try:
+                img = Image.open(image_file)
+            except Exception as e:
+                print(f"Error loading image from path {image_file}: {e}")
+                continue
 
             # Calculate aspect ratios
             img_aspect = img.width / img.height
@@ -206,6 +192,10 @@ class CollageGenerator:
             # Paste with rotation and transparency
             background.paste(img, (paste_x, paste_y), mask)
 
+        # Add text overlay if provided
+        if title:
+            background = self.add_text_to_collage(background, title)
+
         # Update the save operation to use PNG for transparency support
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # Use PNG for transparent backgrounds, JPEG otherwise
@@ -233,6 +223,116 @@ class CollageGenerator:
             output_name=f"collage_{timestamp}",
             title=title
         )
+
+    def create_animated_collage(self, image_files: List[str], dimensions: Tuple[int, int], title: str = "Animated Collage", num_frames: int = 10, duration: float = 0.5):
+        """Creates an animated collage (GIF or MP4) from a list of images."""
+        style = self.get_style_choice()
+        output_format = self.get_animation_format_choice()
+
+        frames = []
+        for _ in range(num_frames):
+            # Create a single frame of the collage
+            frame = self.create_single_collage_frame(image_files, dimensions, style)
+            frames.append(frame)
+
+        # Save the animated collage
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        if output_format == 'gif':
+            output_path = os.path.join(self.output_dir, f"animated_collage_{timestamp}.gif")
+            imageio.mimsave(output_path, frames, duration=duration)
+        else: # mp4
+            output_path = os.path.join(self.output_dir, f"animated_collage_{timestamp}.mp4")
+            imageio.mimwrite(output_path, frames, fps=1/duration)
+
+        print(f"Created animated collage: {output_path}")
+
+    def get_animation_format_choice(self) -> str:
+        """Lets the user choose the animation output format."""
+        print("\nChoose animation format:")
+        print("1. GIF")
+        print("2. MP4")
+        while True:
+            choice = input("Enter your choice (1-2): ")
+            if choice == '1':
+                return 'gif'
+            elif choice == '2':
+                return 'mp4'
+            else:
+                print("Invalid choice. Please try again.")
+
+    def add_text_to_collage(self, collage_image: Image, text: str, font_size: int = 50, font_color: str = "white", position: Tuple[int, int] = (10, 10)):
+        """Adds text overlay to a collage image."""
+        draw = ImageDraw.Draw(collage_image)
+        try:
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except IOError:
+            font = ImageFont.load_default()
+        draw.text(position, text, font=font, fill=font_color)
+        return collage_image
+
+    def create_single_collage_frame(self, image_files: List[str], dimensions: Tuple[int, int], style: dict) -> Image:
+        """Creates a single frame for an animated collage."""
+        base_width, base_height = dimensions
+        if style['background_color'] == 'transparent':
+            background = Image.new('RGBA', dimensions, (0, 0, 0, 0))
+        else:
+            background = Image.new('RGBA', dimensions, style['background_color'])
+
+        if style['background_color'] != 'transparent':
+            gradient = self.create_gradient_overlay(dimensions, style['background_color'])
+            background = Image.alpha_composite(background, gradient)
+
+        n_images = len(image_files)
+        border_size = style['border_size']
+        layout_config = random.choice(GRID_LAYOUTS.get(n_images, [DEFAULT_LAYOUT_CONFIG]))
+        grid = layout_config["layout"]
+        grid = grid[:n_images]
+
+        for idx, (image_file, (x_ratio, y_ratio, w_ratio, h_ratio)) in enumerate(zip(image_files, grid)):
+            x = int(x_ratio * base_width)
+            y = int(y_ratio * base_height)
+            w = int(w_ratio * base_width) - (2 * border_size)
+            h = int(h_ratio * base_height) - (2 * border_size)
+
+            if image_file.startswith(('http://', 'https://')):
+                try:
+                    response = requests.get(image_file, stream=True)
+                    response.raise_for_status()
+                    img = Image.open(BytesIO(response.content))
+                except Exception as e:
+                    print(f"Error loading image from URL {image_file}: {e}")
+                    continue
+            else:
+                img_path = os.path.join(self.images_dir, image_file) if self.images_dir else image_file
+                try:
+                    img = Image.open(img_path)
+                except Exception as e:
+                    print(f"Error loading image from path {img_path}: {e}")
+                    continue
+
+            scale_needed = img.width > w or img.height > h
+            if scale_needed:
+                if img.width / w > img.height / h:
+                    scale_factor = w / img.width
+                else:
+                    scale_factor = h / img.height
+                new_size = (int(img.width * scale_factor), int(img.height * scale_factor))
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
+
+            if style['shadow']:
+                img = self.add_drop_shadow(img, opacity=40)
+            if style['border_size'] > 0:
+                img = self.add_border(img, style['border_size'], style['border_color'])
+
+            rotation = random.uniform(*style['rotation_range'])
+            img = img.rotate(rotation, expand=True, resample=Image.Resampling.BICUBIC)
+
+            paste_x = x + (w - img.width) // 2
+            paste_y = y + (h - img.height) // 2
+            mask = Image.new('L', img.size, 255)
+            background.paste(img, (paste_x, paste_y), mask)
+
+        return background.convert('RGB')
 
     def convert_collage_to_html(self, image_files: List[str], dimensions: Tuple[int, int],
                                grid: List[Tuple], style: dict, output_name: str = None, title: str = "Image Collage"):
@@ -392,9 +492,24 @@ def main():
         "https://storage.googleapis.com/banner-genius-assets-test/dist/public/hamster.png"
     ]
 
-    # Create generator and make collages
+    # Create generator
     generator = CollageGenerator(images_dir=None, output_dir=output_dir)
-    generator.create_collages(image_urls)
+
+    # Ask user for collage type
+    print("\nChoose collage type:")
+    print("1. Static Collage")
+    print("2. Animated Collage")
+    while True:
+        choice = input("Enter your choice (1-2): ")
+        if choice == '1':
+            generator.create_collages(image_urls)
+            break
+        elif choice == '2':
+            dimensions = generator.get_dimension_choice()
+            generator.create_animated_collage(image_urls, dimensions)
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
 if __name__ == "__main__":
     main()
