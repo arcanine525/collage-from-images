@@ -8,10 +8,23 @@ app.config['COLLAGE_FOLDER'] = 'collages'
 
 @app.route('/')
 def index():
+    """Renders the main page of the web application.
+
+    Returns:
+        flask.Response: The rendered HTML of the index page.
+    """
     return render_template('index.html')
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
+    """Handles file uploads from the user.
+
+    Saves uploaded files to the UPLOAD_FOLDER and returns their paths.
+
+    Returns:
+        flask.Response: A JSON response containing the filepaths of the uploaded files,
+                        or an error message if no files were uploaded.
+    """
     if 'files' not in request.files:
         return jsonify({'error': 'No files part'}), 400
     files = request.files.getlist('files')
@@ -29,6 +42,14 @@ def upload_files():
 
 @app.route('/generate_collage', methods=['POST'])
 def generate_collage():
+    """Generates a collage from the uploaded files.
+
+    Takes a list of filepaths, creates a collage using CollageGenerator,
+    and returns the URL of the generated collage.
+
+    Returns:
+        flask.Response: A JSON response containing the URL of the generated collage.
+    """
     data = request.get_json()
     filepaths = data.get('filepaths', [])
 
@@ -39,6 +60,14 @@ def generate_collage():
 
 @app.route('/collages/<filename>')
 def serve_collage(filename):
+    """Serves a generated collage file.
+
+    Args:
+        filename (str): The name of the collage file to serve.
+
+    Returns:
+        flask.Response: The requested collage file.
+    """
     return send_from_directory(app.config['COLLAGE_FOLDER'], filename)
 
 if __name__ == '__main__':
