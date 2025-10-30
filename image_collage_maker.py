@@ -19,7 +19,21 @@ from config import STYLE_PRESETS, DIMENSIONS
 register_heif_opener()
 
 class CollageGenerator:
+    """A class to generate image collages.
+
+    Attributes:
+        images_dir (str): The directory containing the images to be used in the collage.
+        output_dir (str): The directory where the generated collages will be saved.
+        used_images (set): A set of image filenames that have already been used in a collage.
+        style_presets (dict): A dictionary of style presets for the collages.
+    """
     def __init__(self, images_dir: str, output_dir: str):
+        """Initializes the CollageGenerator.
+
+        Args:
+            images_dir (str): The directory containing the images to be used in the collage.
+            output_dir (str): The directory where the generated collages will be saved.
+        """
         self.images_dir = images_dir
         self.output_dir = output_dir
         self.used_images = set()
@@ -30,6 +44,11 @@ class CollageGenerator:
             os.makedirs(output_dir)
 
     def get_dimension_choice(self) -> Tuple[int, int]:
+        """Gets the user's choice of collage dimensions.
+
+        Returns:
+            Tuple[int, int]: A tuple containing the width and height of the collage.
+        """
         print("\nChoose output dimension format:")
 
         # Display dimension options
@@ -72,12 +91,21 @@ class CollageGenerator:
                 print("Invalid input. Please enter a number.")
 
     def get_available_images(self) -> List[str]:
-        """Get list of unused image files from images directory"""
+        """Gets a list of unused image files from the images directory.
+
+        Returns:
+            List[str]: A list of filenames of unused images.
+        """
         all_images = [f for f in os.listdir(self.images_dir)
                      if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.heic'))]
         return [img for img in all_images if img not in self.used_images]
 
     def create_collages(self, image_urls: List[str]):
+        """Creates collages from a list of image URLs.
+
+        Args:
+            image_urls (List[str]): A list of URLs of the images to be used in the collages.
+        """
         dimensions = self.get_dimension_choice()
         available_images = image_urls  # Use the provided image URLs directly
 
@@ -94,6 +122,11 @@ class CollageGenerator:
             available_images = [img for img in image_urls if img not in self.used_images]
 
     def get_style_choice(self) -> dict:
+        """Gets the user's choice of collage style.
+
+        Returns:
+            dict: A dictionary containing the style properties for the collage.
+        """
         print("\nChoose style preset:")
         for idx, style in enumerate(self.style_presets.keys(), 1):
             print(f"{idx}. {style.title()}")
@@ -107,6 +140,13 @@ class CollageGenerator:
                 print("Invalid choice. Please try again.")
 
     def create_single_collage(self, image_files: List[str], dimensions: Tuple[int, int], title=None):
+        """Creates a single collage from a list of image files.
+
+        Args:
+            image_files (List[str]): A list of filenames or URLs of the images to be used in the collage.
+            dimensions (Tuple[int, int]): A tuple containing the width and height of the collage.
+            title (str, optional): The title of the collage. Defaults to None.
+        """
         base_width, base_height = dimensions
         style = self.get_style_choice()
 
@@ -225,7 +265,15 @@ class CollageGenerator:
         )
 
     def create_animated_collage(self, image_files: List[str], dimensions: Tuple[int, int], title: str = "Animated Collage", num_frames: int = 10, duration: float = 0.5):
-        """Creates an animated collage (GIF or MP4) from a list of images."""
+        """Creates an animated collage (GIF or MP4) from a list of images.
+
+        Args:
+            image_files (List[str]): A list of filenames or URLs of the images to be used in the collage.
+            dimensions (Tuple[int, int]): A tuple containing the width and height of the collage.
+            title (str, optional): The title of the collage. Defaults to "Animated Collage".
+            num_frames (int, optional): The number of frames in the animation. Defaults to 10.
+            duration (float, optional): The duration of each frame in seconds. Defaults to 0.5.
+        """
         style = self.get_style_choice()
         output_format = self.get_animation_format_choice()
 
@@ -247,7 +295,11 @@ class CollageGenerator:
         print(f"Created animated collage: {output_path}")
 
     def get_animation_format_choice(self) -> str:
-        """Lets the user choose the animation output format."""
+        """Lets the user choose the animation output format.
+
+        Returns:
+            str: The chosen animation format ('gif' or 'mp4').
+        """
         print("\nChoose animation format:")
         print("1. GIF")
         print("2. MP4")
@@ -261,7 +313,18 @@ class CollageGenerator:
                 print("Invalid choice. Please try again.")
 
     def add_text_to_collage(self, collage_image: Image, text: str, font_size: int = 50, font_color: str = "white", position: Tuple[int, int] = (10, 10)):
-        """Adds text overlay to a collage image."""
+        """Adds a text overlay to a collage image.
+
+        Args:
+            collage_image (Image): The collage image to add text to.
+            text (str): The text to add.
+            font_size (int, optional): The font size of the text. Defaults to 50.
+            font_color (str, optional): The color of the text. Defaults to "white".
+            position (Tuple[int, int], optional): The position of the text. Defaults to (10, 10).
+
+        Returns:
+            Image: The collage image with the text overlay.
+        """
         draw = ImageDraw.Draw(collage_image)
         try:
             font = ImageFont.truetype("arial.ttf", font_size)
@@ -271,7 +334,16 @@ class CollageGenerator:
         return collage_image
 
     def create_single_collage_frame(self, image_files: List[str], dimensions: Tuple[int, int], style: dict) -> Image:
-        """Creates a single frame for an animated collage."""
+        """Creates a single frame for an animated collage.
+
+        Args:
+            image_files (List[str]): A list of filenames or URLs of the images to be used in the collage.
+            dimensions (Tuple[int, int]): A tuple containing the width and height of the collage.
+            style (dict): A dictionary containing the style properties for the collage.
+
+        Returns:
+            Image: A single frame of the collage.
+        """
         base_width, base_height = dimensions
         if style['background_color'] == 'transparent':
             background = Image.new('RGBA', dimensions, (0, 0, 0, 0))
@@ -336,6 +408,19 @@ class CollageGenerator:
 
     def convert_collage_to_html(self, image_files: List[str], dimensions: Tuple[int, int],
                                grid: List[Tuple], style: dict, output_name: str = None, title: str = "Image Collage"):
+        """Converts a collage to an HTML file.
+
+        Args:
+            image_files (List[str]): A list of filenames or URLs of the images used in the collage.
+            dimensions (Tuple[int, int]): A tuple containing the width and height of the collage.
+            grid (List[Tuple]): A list of tuples defining the layout of the images.
+            style (dict): A dictionary containing the style properties for the collage.
+            output_name (str, optional): The name of the output HTML file. Defaults to None.
+            title (str, optional): The title of the HTML page. Defaults to "Image Collage".
+
+        Returns:
+            str: The path to the generated HTML file.
+        """
         base_width, base_height = dimensions
         border_size = style.get('border_size', 0)
 
@@ -428,14 +513,30 @@ class CollageGenerator:
 
     @staticmethod
     def rectangles_overlap(rect1, rect2):
-        """Check if two rectangles overlap"""
+        """Checks if two rectangles overlap.
+
+        Args:
+            rect1 (Tuple[int, int, int, int]): The first rectangle (x1, y1, x2, y2).
+            rect2 (Tuple[int, int, int, int]): The second rectangle (x3, y3, x4, y4).
+
+        Returns:
+            bool: True if the rectangles overlap, False otherwise.
+        """
         x1, y1, x2, y2 = rect1
         x3, y3, x4, y4 = rect2
         return not (x2 < x3 or x4 < x1 or y2 < y3 or y4 < y1)
 
     @staticmethod
     def create_gradient_overlay(dimensions: Tuple[int, int], base_color: str) -> Image:
-        """Create a subtle gradient overlay"""
+        """Creates a subtle gradient overlay for the collage background.
+
+        Args:
+            dimensions (Tuple[int, int]): A tuple containing the width and height of the collage.
+            base_color (str): The base color of the background.
+
+        Returns:
+            Image: The gradient overlay image.
+        """
         # Skip gradient for transparent backgrounds
         if base_color == 'transparent':
             return Image.new('RGBA', dimensions, (0, 0, 0, 0))
@@ -452,7 +553,15 @@ class CollageGenerator:
 
     @staticmethod
     def add_drop_shadow(image: Image, opacity: int = 40) -> Image:
-        """Add subtle drop shadow to image"""
+        """Adds a drop shadow to an image.
+
+        Args:
+            image (Image): The image to add a drop shadow to.
+            opacity (int, optional): The opacity of the drop shadow. Defaults to 40.
+
+        Returns:
+            Image: The image with the drop shadow.
+        """
         shadow = Image.new('RGBA', image.size, (0, 0, 0, 0))
         shadow_draw = ImageDraw.Draw(shadow)
         shadow_draw.rectangle([(2, 2), (image.size[0]-2, image.size[1]-2)],
@@ -466,7 +575,16 @@ class CollageGenerator:
 
     @staticmethod
     def add_border(image: Image, border_size: int, border_color: str) -> Image:
-        """Add border to image with specified size and color"""
+        """Adds a border to an image.
+
+        Args:
+            image (Image): The image to add a border to.
+            border_size (int): The size of the border in pixels.
+            border_color (str): The color of the border.
+
+        Returns:
+            Image: The image with the border.
+        """
         if image.mode != 'RGBA':
             image = image.convert('RGBA')
 
@@ -479,6 +597,11 @@ class CollageGenerator:
         return bordered
 
 def main():
+    """The main function of the script.
+
+    This function is executed when the script is run directly. It allows the user to create a collage
+    from a predefined list of image URLs. The user can choose between creating a static or an animated collage.
+    """
     # Set up directories
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_dir = os.path.join(script_dir, 'collages')

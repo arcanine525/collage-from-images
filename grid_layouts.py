@@ -1,7 +1,10 @@
-"""
-Grid layout configurations for image collages.
-Each layout specifies the position and size of images in a collage.
-Format: (x_ratio, y_ratio, width_ratio, height_ratio)
+"""Grid layout configurations for image collages.
+
+This file defines the grid layouts for different numbers of images.
+- GRID_LAYOUTS: A dictionary where the keys are the number of images and the values are lists of layout configurations.
+  - Each layout configuration is a dictionary with a name, a description, and a layout.
+  - The layout is a list of tuples, where each tuple represents an image and contains four values: (x_ratio, y_ratio, width_ratio, height_ratio).
+- DEFAULT_LAYOUT_CONFIG: A default layout configuration to be used as a fallback.
 """
 
 GRID_LAYOUTS = {

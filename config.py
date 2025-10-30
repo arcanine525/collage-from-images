@@ -1,6 +1,8 @@
-"""
-Configuration file for the collage generator.
-Contains style presets and dimension options.
+"""Configuration file for the collage generator.
+
+This file contains presets for styles and dimensions.
+- DIMENSIONS: A dictionary of predefined aspect ratios and their corresponding pixel dimensions.
+- STYLE_PRESETS: A dictionary of style presets, each with its own set of visual options.
 """
 
 # Available dimensions with name and pixel values
