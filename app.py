@@ -1,0 +1,49 @@
+from flask import Flask, render_template, request, jsonify, send_from_directory
+from image_collage_maker import CollageGenerator
+import os
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['COLLAGE_FOLDER'] = 'collages'
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_files():
+    if 'files' not in request.files:
+        return jsonify({'error': 'No files part'}), 400
+    files = request.files.getlist('files')
+    if not files:
+        return jsonify({'error': 'No selected files'}), 400
+
+    filepaths = []
+    for file in files:
+        if file:
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+            file.save(filepath)
+            filepaths.append(filepath)
+
+    return jsonify({'filepaths': filepaths})
+
+@app.route('/generate_collage', methods=['POST'])
+def generate_collage():
+    data = request.get_json()
+    filepaths = data.get('filepaths', [])
+
+    generator = CollageGenerator(images_dir=None, output_dir=app.config['COLLAGE_FOLDER'])
+    collage_path = generator.create_single_collage(filepaths, (1200, 1200))
+
+    return jsonify({'collage_url': os.path.basename(collage_path)})
+
+@app.route('/collages/<filename>')
+def serve_collage(filename):
+    return send_from_directory(app.config['COLLAGE_FOLDER'], filename)
+
+if __name__ == '__main__':
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+    if not os.path.exists(app.config['COLLAGE_FOLDER']):
+        os.makedirs(app.config['COLLAGE_FOLDER'])
+    app.run(debug=True)

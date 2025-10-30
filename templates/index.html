@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Collage Maker</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #collage-container {
+            width: 800px;
+            height: 600px;
+            border: 1px solid #ccc;
+            position: relative;
+            overflow: hidden;
+        }
+        .draggable {
+            position: absolute;
+            cursor: move;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Collage Maker</h1>
+    <div id="controls">
+        <input type="file" id="image-upload" multiple>
+        <button id="generate-btn">Generate Collage</button>
+    </div>
+    <div id="collage-container"></div>
+    <script>
+        document.getElementById('generate-btn').addEventListener('click', async () => {
+            const files = document.getElementById('image-upload').files;
+            const formData = new FormData();
+            for (const file of files) {
+                formData.append('files', file);
+            }
+
+            const uploadResponse = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const uploadData = await uploadResponse.json();
+            const filepaths = uploadData.filepaths;
+
+            const collageResponse = await fetch('/generate_collage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filepaths: filepaths })
+            });
+            const collageData = await collageResponse.json();
+
+            const collageImage = new Image();
+            collageImage.src = `/collages/${collageData.collage_url}`;
+            document.getElementById('collage-container').innerHTML = '';
+            document.getElementById('collage-container').appendChild(collageImage);
+        });
+    </script>
+</body>
+</html>
